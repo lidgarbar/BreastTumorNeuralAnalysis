@@ -63,22 +63,49 @@ loader.split_data()
 loader.print_shapes()
 '''
 #TODO: HACER LO DEL MASK_1 y MASK CON LAS IMAGENES
-def loadX(tipo,dir_tipo):
+
+def loadX(tipo, dir_tipo):
     images = []
-    size = int(len(os.listdir(dir_tipo))/2)
-    print(size)
-    for i in range(size-1):
-        dir= tipo+' ('+str(i+1)+').png'
-        dir_mask= tipo+' ('+str(i+1)+')_mask.png'
-        print(os.path.join(dir_tipo,dir))
-        img = cv.imread(os.path.join(dir_tipo,dir),0)
-        img_mask = cv.imread(os.path.join(dir_tipo,dir_mask),0)
-        img_resized= cv.resize(img,(332, 332),interpolation=cv.INTER_AREA)
-        img_mask_resized= cv.resize(img_mask,(332, 332),interpolation=cv.INTER_AREA)
-        result = cv.bitwise_and(img_resized,img_mask_resized)
+
+    # Obtener la lista de nombres de las imagenes de los tumores SIN LOS MASK
+    image_files = [f for f in os.listdir(dir_tipo) if f.endswith(".png") and not f.endswith("_mask.png")]
+
+    for image_filename in image_files:
+        # Obtener el nombre base de la imagen (sin la extensión)
+        base_name = os.path.splitext(image_filename)[0]
+        
+        # Cargar la imagen
+        img = cv.imread(os.path.join(dir_tipo, image_filename), 0)
+
+        # Inicializar una máscara vacía
+        img_mask = np.zeros_like(img)
+
+        # Buscar todas las máscaras correspondientes a esta imagen
+        mask_files = [f for f in os.listdir(dir_tipo) if f.startswith(base_name + "_mask")]
+       
+
+        for mask_filename in mask_files:
+            # Cargar la máscara
+            mask = cv.imread(os.path.join(dir_tipo, mask_filename), 0)
+
+            # Agregar la máscara a la imagen de la máscara
+            img_mask = cv.bitwise_or(img_mask, mask)
+
+        # Redimensionar la imagen y la máscara si es necesario
+        img_resized = cv.resize(img, (332, 332), interpolation=cv.INTER_AREA)
+        img_mask_resized = cv.resize(img_mask, (332, 332), interpolation=cv.INTER_AREA)
+
+        # Aplicar la máscara a la imagen
+        result = cv.bitwise_and(img_resized, img_mask_resized)
+
         images.append(result)
+
     X = np.array(images)
     return X
+    
+    
+
+
 
 class DataLoader_CNN:
     def __init__(self, images_path='./data'):
@@ -97,27 +124,23 @@ class DataLoader_CNN:
     
 
     def load_data(self):
+        #Sizes of each type of image
+        x_benign =loadX('benign',self.dir_benign)
+        x_malignant =loadX('malignant',self.dir_malignant)
+        size_benign = len(x_benign)
+        size_malignant = len(x_malignant)
         # Load data from the CSV file into a pandas DataFrame
-        size_benign= len(os.listdir(self.dir_benign))/2
-        size_malignant= len(os.listdir(self.dir_malignant))/2
-        size_normal= len(os.listdir(self.dir_normal))/2
+        self.x_images = np.concatenate((x_benign,x_malignant),axis=0)
+        
 
-        self.x_images = loadX('benign',self.dir_benign)+loadX('malignant',self.dir_malignant)
-        +loadX('normal',self.dir_normal)
-        #haz un plot de una imagen
-        plt.imshow(self.x_images[0],cmap="gray")
-        self.y_images = np.concatenate((np.zeros(size_benign),np.ones(size_malignant),np.full(size_normal,2)))
-
-    
-
-
+        # Create y vector
+        self.y_images = np.concatenate((np.zeros(size_benign),np.ones(size_malignant)),axis=0)
+        #haz un plot de una imagen con la etiqueta correspondiente
+        plt.imshow(self.x_images[5],cmap="gray")
+        plt.show()
+        print(self.y_images[5])
 
 
 ImageLoader = DataLoader_CNN()
 ImageLoader.load_data()
 
-'''
-size_benign= len(os.listdir(dir_benign))/2
-    size_malignant= len(os.listdir(dir_malignant))/2
-        size_normal= len(os.listdir(dir_normal))/2
-        '''
