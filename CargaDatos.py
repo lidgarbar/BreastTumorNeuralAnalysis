@@ -135,12 +135,11 @@ class DataLoader_CNN:
 
         # Create y vector
         self.y_images = np.concatenate((np.zeros(size_benign),np.ones(size_malignant)),axis=0)
-        #haz un plot de una imagen con la etiqueta correspondiente
-        plt.imshow(self.x_images[5],cmap="gray")
-        plt.show()
-        print(self.y_images[5])
+        
+
+        return self.x_images,self.y_images
 
 
 ImageLoader = DataLoader_CNN()
-ImageLoader.load_data()
+X_images,y_images = ImageLoader.load_data()
 
